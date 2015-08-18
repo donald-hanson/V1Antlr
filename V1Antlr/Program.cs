@@ -33,8 +33,7 @@ namespace V1Antlr
                 "OrderLineItem.Product",
                 "OrderLineItem.Order.ID",
 
-                "Product.Images[Position=''].Source",
-                "Product.Images[Position='1'].Source",
+                "Product.Images[(Position='1'|Position='2');(Position>'0')].Source",
                 "OrderLineItem.Properties[Name='Add a Monogram'].Value",
                 "OrderLineItem.Properties[Name='Custom Text'].Value",
                 "OrderLineItem.Properties[Name='Font'].Value",

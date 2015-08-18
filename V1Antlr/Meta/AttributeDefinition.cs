@@ -46,6 +46,11 @@ namespace V1Antlr.Meta
             throw new NotSupportedException($"Cannot aggregate {Token} for {aggregateType}");
         }
 
+        internal virtual AttributeDefinition CreateFilteredAttributeDefinition(FilterTerm filterTerm)
+        {
+            throw new NotSupportedException($"Cannot filter {Token} for {filterTerm}");
+        }
+
         public override string ToString()
         {
             return Token;

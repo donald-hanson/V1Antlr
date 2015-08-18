@@ -92,7 +92,7 @@ namespace V1Antlr.Meta
             {
                 var subVisitor = new FilterVisitor(result.RelatedAssetType, _metaModel);
                 var subFilter = subVisitor.Visit(filter);
-                throw new NotImplementedException("Filtered Attribute Definition");
+                result = result.CreateFilteredAttributeDefinition(subFilter);
             }
 
             return result;
@@ -123,6 +123,37 @@ namespace V1Antlr.Meta
 
             FilterTerm leftTerm = firstGroup != null ? Visit(firstGroup) : Visit(firstSimple);
 
+            int index = 0;
+            while (true)
+            {
+                FilterTermType groupOp;
+                if (context.and_operator(index) != null)
+                    groupOp = FilterTermType.And;
+                else if (context.or_operator(index) != null)
+                    groupOp = FilterTermType.Or;
+                else
+                    break;
+
+                index++;
+
+                var nextGroup = context.grouped_filter_term(index);
+                var nextSimple = context.simple_filter_term(index);
+
+                FilterTerm rightTerm = nextGroup != null ? Visit(nextGroup) : Visit(nextSimple);
+
+                if (leftTerm.Type == groupOp)
+                {
+                    ((GroupFilterTerm) leftTerm).Add(rightTerm);
+                }
+                else
+                {
+                    var groupTerm = groupOp == FilterTermType.And ? (GroupFilterTerm) new AndFilterTerm() : new OrFilterTerm();
+                    groupTerm.Add(leftTerm);
+                    groupTerm.Add(rightTerm);
+                    leftTerm = groupTerm;
+                }
+            }
+
             return leftTerm;
         }
 
@@ -152,48 +183,46 @@ namespace V1Antlr.Meta
                     return FieldFilterTerm.NotExists(attributeDefinition);
                 }
             }
+
+            List<object> values = new List<object>();
+
+            var valueList = context.filter_value_list();
+            if (valueList != null)
+            {
+                var filterValues = valueList.filter_value();
+                foreach (var filterValue in filterValues)
+                {
+                    var singleQuoteValue = filterValue.SINGLE_QUOTED_STRING();
+                    var doubleQuoteValue = filterValue.DOUBLE_QUOTED_STRING();
+                    string filterValueToken = singleQuoteValue?.GetText()?? doubleQuoteValue.GetText();
+                    filterValueToken = filterValueToken.Substring(1, filterValueToken.Length - 2);
+                    values.Add(attributeDefinition.Coerce(filterValueToken));
+                }
+            }
             else
             {
-                List<object> values = new List<object>();
+                var variableContext = context.variable();
+                throw new NotImplementedException("Filter Variables");
+            }
 
-                var valueList = context.filter_value_list();
-                if (valueList != null)
-                {
-                    var filterValues = valueList.filter_value();
-                    foreach (var filterValue in filterValues)
-                    {
-                        var singleQuoteValue = filterValue.SINGLE_QUOTED_STRING();
-                        var doubleQuoteValue = filterValue.DOUBLE_QUOTED_STRING();
-                        string filterValueToken = singleQuoteValue?.GetText()?? doubleQuoteValue.GetText();
-                        filterValueToken = filterValueToken.Substring(1, filterValueToken.Length - 2);
-                        values.Add(attributeDefinition.Coerce(filterValueToken));
-                    }
-                }
-                else
-                {
-                    var variableContext = context.variable();
-                    throw new NotImplementedException("Filter Variables");
-                }
-
-                var binaryOperator = context.binary_operator();
-                var binaryOperatorText = binaryOperator.GetText();
-                switch (binaryOperatorText)
-                {
-                    case "=":
-                        return FieldFilterTerm.Equal(attributeDefinition, values);
-                    case "!=":
-                        return FieldFilterTerm.NotEqual(attributeDefinition, values);
-                    case "<":
-                        return FieldFilterTerm.Less(attributeDefinition, values);
-                    case "<=":
-                        return FieldFilterTerm.LessOrEqual(attributeDefinition, values);
-                    case ">":
-                        return FieldFilterTerm.Greater(attributeDefinition, values);
-                    case ">=":
-                        return FieldFilterTerm.GreaterOrEqual(attributeDefinition, values);
-                    default:
-                        throw new NotSupportedException("Unknown binary operator");
-                }
+            var binaryOperator = context.binary_operator();
+            var binaryOperatorText = binaryOperator.GetText();
+            switch (binaryOperatorText)
+            {
+                case "=":
+                    return FieldFilterTerm.Equal(attributeDefinition, values);
+                case "!=":
+                    return FieldFilterTerm.NotEqual(attributeDefinition, values);
+                case "<":
+                    return FieldFilterTerm.Less(attributeDefinition, values);
+                case "<=":
+                    return FieldFilterTerm.LessOrEqual(attributeDefinition, values);
+                case ">":
+                    return FieldFilterTerm.Greater(attributeDefinition, values);
+                case ">=":
+                    return FieldFilterTerm.GreaterOrEqual(attributeDefinition, values);
+                default:
+                    throw new NotSupportedException("Unknown binary operator");
             }
         }
     }
