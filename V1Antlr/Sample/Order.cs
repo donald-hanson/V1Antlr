@@ -12,7 +12,7 @@ namespace V1Antlr.Sample
         public virtual DateTime CreatedAt { get; set; }
         public virtual string Name { get; set; }
 
-        public virtual ICollection<OrderLineItem> LineItem { get; set; } = new List<OrderLineItem>();
+        public virtual ICollection<OrderLineItem> LineItems { get; set; } = new List<OrderLineItem>();
     }
 
     public class OrderLineItem

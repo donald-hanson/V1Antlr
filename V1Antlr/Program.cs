@@ -40,7 +40,10 @@ namespace V1Antlr
                 "OrderLineItem.Properties[Name='Thread Color'].Value",
                 "OrderLineItem.Properties[Name='Color'].Value",
 
-                "Product.Url", // Calculated?
+                "Order.LineItems.Properties[Name='Color'].Value",
+                "Order.LineItems[+Properties;Quantity>'0'].Properties[Value!=''].Value"
+
+                //"Product.Url", // Calculated?
             };
 
             foreach(var testToken in testTokens)
