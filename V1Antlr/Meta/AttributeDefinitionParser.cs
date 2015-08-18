@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Antlr4.Runtime;
 
 namespace V1Antlr.Meta
@@ -89,10 +90,111 @@ namespace V1Antlr.Meta
 
             if (filter != null)
             {
+                var subVisitor = new FilterVisitor(result.RelatedAssetType, _metaModel);
+                var subFilter = subVisitor.Visit(filter);
                 throw new NotImplementedException("Filtered Attribute Definition");
             }
 
             return result;
+        }
+    }
+
+    public class FilterVisitor : V1QueryBaseVisitor<FilterTerm>
+    {
+        private readonly AssetType _rootAssetType;
+        private readonly MetaModel _metaModel;
+
+        public FilterVisitor(AssetType rootAssetType, MetaModel metaModel)
+        {
+            _rootAssetType = rootAssetType;
+            _metaModel = metaModel;
+        }
+
+        public override FilterTerm VisitAttribute_filter(V1QueryParser.Attribute_filterContext context)
+        {
+            var exp = context.filter_expression();
+            return Visit(exp);
+        }
+
+        public override FilterTerm VisitFilter_expression(V1QueryParser.Filter_expressionContext context)
+        {
+            var firstGroup = context.grouped_filter_term(0);
+            var firstSimple = context.simple_filter_term(0);
+
+            FilterTerm leftTerm = firstGroup != null ? Visit(firstGroup) : Visit(firstSimple);
+
+            return leftTerm;
+        }
+
+        public override FilterTerm VisitGrouped_filter_term(V1QueryParser.Grouped_filter_termContext context)
+        {
+            var exp = context.filter_expression();
+            return Visit(exp);
+        }
+
+        public override FilterTerm VisitSimple_filter_term(V1QueryParser.Simple_filter_termContext context)
+        {
+            var attributeName = context.attribute_name();
+            var attributeVisitor = new AttributeDefinitionVisitor(_rootAssetType, _metaModel);
+            var attributeDefinition = attributeVisitor.Visit(attributeName);
+
+            var unaryOperator = context.unary_operator();
+            if (unaryOperator != null)
+            {
+                if (unaryOperator.PLUS() != null)
+                {
+                    // exists
+                    return FieldFilterTerm.Exists(attributeDefinition);
+                }
+                else
+                {
+                    // not exists
+                    return FieldFilterTerm.NotExists(attributeDefinition);
+                }
+            }
+            else
+            {
+                List<object> values = new List<object>();
+
+                var valueList = context.filter_value_list();
+                if (valueList != null)
+                {
+                    var filterValues = valueList.filter_value();
+                    foreach (var filterValue in filterValues)
+                    {
+                        var singleQuoteValue = filterValue.SINGLE_QUOTED_STRING();
+                        var doubleQuoteValue = filterValue.DOUBLE_QUOTED_STRING();
+                        string filterValueToken = singleQuoteValue?.GetText()?? doubleQuoteValue.GetText();
+                        filterValueToken = filterValueToken.Substring(1, filterValueToken.Length - 2);
+                        values.Add(attributeDefinition.Coerce(filterValueToken));
+                    }
+                }
+                else
+                {
+                    var variableContext = context.variable();
+                    throw new NotImplementedException("Filter Variables");
+                }
+
+                var binaryOperator = context.binary_operator();
+                var binaryOperatorText = binaryOperator.GetText();
+                switch (binaryOperatorText)
+                {
+                    case "=":
+                        return FieldFilterTerm.Equal(attributeDefinition, values);
+                    case "!=":
+                        return FieldFilterTerm.NotEqual(attributeDefinition, values);
+                    case "<":
+                        return FieldFilterTerm.Less(attributeDefinition, values);
+                    case "<=":
+                        return FieldFilterTerm.LessOrEqual(attributeDefinition, values);
+                    case ">":
+                        return FieldFilterTerm.Greater(attributeDefinition, values);
+                    case ">=":
+                        return FieldFilterTerm.GreaterOrEqual(attributeDefinition, values);
+                    default:
+                        throw new NotSupportedException("Unknown binary operator");
+                }
+            }
         }
     }
 }

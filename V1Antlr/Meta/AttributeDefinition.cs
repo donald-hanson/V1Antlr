@@ -50,5 +50,10 @@ namespace V1Antlr.Meta
         {
             return Token;
         }
+
+        public object Coerce(string value)
+        {
+            return value;
+        }
     }
 }

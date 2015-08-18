@@ -18,7 +18,37 @@ namespace V1Antlr
 
             metaModel.RegisterTypes(types);
 
-            var attr = metaModel.GetAttributeDefinition("Product.Variants.Price.@Min");
+            var testTokens = new[] {
+                "Product.ID",
+                "Product.Title",
+                "Product.BodyHtml",
+                "Product.Variants.Price.@Min",
+                "OrderLineItem.Order.Name",
+                "OrderLineItem.Order.CreatedAt",
+                "OrderLineItem.Quantity",
+                "OrderLineItem.Title",
+                "OrderLineItem.VariantTitle",
+                "OrderLineItem.Order.CreatedAt",
+                //"Product.Visible",
+                "OrderLineItem.Product",
+                "OrderLineItem.Order.ID",
+
+                "Product.Images[Position=''].Source",
+                "Product.Images[Position='1'].Source",
+                "OrderLineItem.Properties[Name='Add a Monogram'].Value",
+                "OrderLineItem.Properties[Name='Custom Text'].Value",
+                "OrderLineItem.Properties[Name='Font'].Value",
+                "OrderLineItem.Properties[Name='Thread Color'].Value",
+                "OrderLineItem.Properties[Name='Color'].Value",
+
+                "Product.Url", // Calculated?
+            };
+
+            foreach(var testToken in testTokens)
+            {
+                var attr = metaModel.GetAttributeDefinition(testToken);
+                Console.WriteLine(attr.Token);
+            }
 
             Console.WriteLine("Done");
             Console.ReadLine();

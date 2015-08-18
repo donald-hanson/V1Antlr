@@ -79,6 +79,7 @@
     <Compile Include="Meta\AssetTypeParser.cs" />
     <Compile Include="Meta\AttributeDefinition.cs" />
     <Compile Include="Meta\AttributeDefinitionParser.cs" />
+    <Compile Include="Meta\FilterTerm.cs" />
     <Compile Include="Meta\JoinedAttributeDefinition.cs" />
     <Compile Include="Meta\MetaModel.cs" />
     <Compile Include="Meta\MultiRelationAttributeDefinition.cs" />
