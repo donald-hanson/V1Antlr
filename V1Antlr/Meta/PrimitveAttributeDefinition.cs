@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 using System.Reflection;
 using V1Antlr.Extensions;
 
@@ -17,5 +18,10 @@ namespace V1Antlr.Meta
         }
 
         internal override bool IsNumeric => _property.PropertyType.IsNumeric();
+
+        internal override Expression CreateExpression(Expression parameter)
+        {
+            return Expression.Property(parameter, _property);
+        }
     }
 }

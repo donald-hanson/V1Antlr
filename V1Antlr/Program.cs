@@ -66,6 +66,14 @@ namespace V1Antlr
                                new Product { ID = 3, Title = "Product #3", BodyHtml = "Product #3 Body" },
                            };
 
+            var test = products.AsQueryable().Select(p => new
+            {
+                ID = p.ID,
+                Title = p.Title,
+                BodyHtml = p.BodyHtml,
+                test = p.Images.Where(i => i.ID > 0).Count()
+            });
+                
             var selected = products.AsQueryable().ApplyQuery(query);
 
             Console.WriteLine("Done");

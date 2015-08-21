@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 
 namespace V1Antlr.Meta
 {
@@ -59,6 +60,11 @@ namespace V1Antlr.Meta
         public object Coerce(string value)
         {
             return value;
+        }
+
+        internal virtual Expression CreateExpression(Expression parameter)
+        {
+            throw new NotImplementedException();
         }
     }
 }
