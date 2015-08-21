@@ -22,15 +22,26 @@ namespace V1Antlr.Meta
             return Parse(attributeName, assetType, metaModel);
         }
 
-        public static AttributeDefinition Parse(string attributeDefinitionToken, AssetType assetType, MetaModel metaModel)
+        public static AttributeDefinition Parse(string attributeNameToken, AssetType assetType, MetaModel metaModel)
         {
-            ICharStream charStream = new AntlrInputStream(attributeDefinitionToken);
+            ICharStream charStream = new AntlrInputStream(attributeNameToken);
             ITokenSource tokenSource = new V1QueryLexer(charStream);
             ITokenStream tokenStream = new CommonTokenStream(tokenSource);
             var parser = new V1QueryParser(tokenStream);
             var attributeName = parser.attribute_name();
             var visitor = new AttributeDefinitionVisitor(assetType, metaModel);
             return visitor.Visit(attributeName);
+        }
+
+        public static FilterTerm ParseFilter(string filterToken, AssetType assetType, MetaModel metaModel)
+        {
+            ICharStream charStream = new AntlrInputStream(filterToken);
+            ITokenSource tokenSource = new V1QueryLexer(charStream);
+            ITokenStream tokenStream = new CommonTokenStream(tokenSource);
+            var parser = new V1QueryParser(tokenStream);
+            var expression = parser.filter_expression();
+            var visitor = new FilterVisitor(assetType, metaModel);
+            return visitor.Visit(expression);
         }
     }
 

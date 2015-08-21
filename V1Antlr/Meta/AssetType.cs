@@ -33,5 +33,10 @@ namespace V1Antlr.Meta
         {
             return AttributeDefinitionParser.Parse(attributeNameToken, this, _metaModel);
         }
+
+        public FilterTerm GetFilterTerm(string filterToken)
+        {
+            return AttributeDefinitionParser.ParseFilter(filterToken, this, _metaModel);
+        }
     }
 }

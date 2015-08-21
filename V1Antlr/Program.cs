@@ -2,7 +2,9 @@
 using System.Linq;
 using log4net.Config;
 using Magnum.TypeScanning;
+using V1Antlr.Data;
 using V1Antlr.Meta;
+using V1Antlr.Sample;
 
 namespace V1Antlr
 {
@@ -51,6 +53,20 @@ namespace V1Antlr
                 var attr = metaModel.GetAttributeDefinition(testToken);
                 Console.WriteLine(attr.Token);
             }
+
+            Query query = QueryBuilder.For("Product", metaModel)
+                .Select("ID","Title","BodyHtml")
+                .Where("ID>'0'")
+                .ToQuery();
+
+            var products = new Product[]
+                           {
+                               new Product { ID = 1, Title = "Product #1", BodyHtml = "Product #1 Body" },
+                               new Product { ID = 2, Title = "Product #2", BodyHtml = "Product #2 Body" },
+                               new Product { ID = 3, Title = "Product #3", BodyHtml = "Product #3 Body" },
+                           };
+
+            var selected = products.AsQueryable().ApplyQuery(query);
 
             Console.WriteLine("Done");
             Console.ReadLine();
