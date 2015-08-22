@@ -56,7 +56,7 @@ namespace V1Antlr
 
             Query query = QueryBuilder.For("Product", metaModel)
                 .Select("ID","Title","BodyHtml","Variants")
-                .Where("ID>'0'")
+                .Where("ID>'1'")
                 .Order("Title","-BodyHtml", "+ID")
                 .Skip(1)
                 .Take(1)

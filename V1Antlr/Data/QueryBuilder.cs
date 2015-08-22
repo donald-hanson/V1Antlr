@@ -10,7 +10,7 @@ namespace V1Antlr.Data
         private readonly MetaModel _metaModel;
 
         private readonly ICollection<AttributeDefinition> _selection = new List<AttributeDefinition>();
-        private FilterTerm _filter = new AndFilterTerm();
+        private readonly AndFilterTerm _filter = new AndFilterTerm();
         private readonly ICollection<OrderTerm> _orderTerms = new List<OrderTerm>();
         private int? _skip;
         private int? _take;
@@ -39,7 +39,8 @@ namespace V1Antlr.Data
 
         public QueryBuilder Where(string filterToken)
         {
-            _filter = _assetType.GetFilterTerm(filterToken);
+            var term = _assetType.GetFilterTerm(filterToken);
+            _filter.Add(term);
             return this;
         }
 

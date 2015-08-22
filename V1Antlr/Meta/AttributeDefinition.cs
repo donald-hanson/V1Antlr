@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace V1Antlr.Meta
@@ -57,12 +58,17 @@ namespace V1Antlr.Meta
             return Token;
         }
 
-        public object Coerce(string value)
+        internal virtual object Coerce(string value)
         {
             return value;
         }
 
         internal virtual Expression CreateExpression(Expression parameter)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal virtual BinaryExpression CreateFilterExpression(FieldFilterTermOperator @operator, IEnumerable<object> values, Expression parameter)
         {
             throw new NotImplementedException();
         }
