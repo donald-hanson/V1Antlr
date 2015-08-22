@@ -30,7 +30,7 @@ namespace V1Antlr.Data
 
             var totalAvailable = DetermineTotalAvailable(queryable);
 
-            // queryable = ApplySorting(queryable, query);
+            queryable = ApplySorting(queryable, query);
             queryable = ApplyPaging(queryable, query);
             queryable = ApplySelection(queryable, query);
 
@@ -145,5 +145,25 @@ namespace V1Antlr.Data
             return queryable.Provider.CreateQuery(call);
         }
 
+        private static IQueryable ApplySorting(IQueryable queryable, Query query)
+        {
+            bool first = true;
+            foreach (var term in query.OrderTerms)
+            {
+                string methodName = null;
+                if (first)
+                    methodName = term.Direction == OrderTermDirection.Ascending ? "OrderBy" : "OrderByDescending";
+                else
+                    methodName = term.Direction == OrderTermDirection.Ascending ? "ThenBy" : "ThenByDescending";
+                first = false;
+
+                var parameter = Expression.Parameter(queryable.ElementType);
+                var expression = term.AttributeDefinition.CreateExpression(parameter);
+                var lambda = Expression.Lambda(expression, parameter);
+                var ordercall = Expression.Call(typeof(Queryable), methodName, new [] { queryable.ElementType, lambda.ReturnType }, queryable.Expression, lambda);
+                queryable = queryable.Provider.CreateQuery(ordercall);
+            }
+            return queryable;
+        }
     }
 }
