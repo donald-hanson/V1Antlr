@@ -11,6 +11,7 @@ namespace V1Antlr.Data
 
         private readonly ICollection<AttributeDefinition> _selection = new List<AttributeDefinition>();
         private FilterTerm _filter = new AndFilterTerm();
+        private readonly ICollection<OrderTerm> _orderTerms = new List<OrderTerm>();
         private int? _skip;
         private int? _take;
 
@@ -42,6 +43,16 @@ namespace V1Antlr.Data
             return this;
         }
 
+        public QueryBuilder Order(params string[] orderTerms)
+        {
+            foreach (var orderTerm in orderTerms)
+            {
+                var term = _assetType.GetOrderTerm(orderTerm);
+                _orderTerms.Add(term);
+            }
+            return this;
+        }
+
         public QueryBuilder Skip(int skip)
         {
             _skip = skip;
@@ -56,7 +67,7 @@ namespace V1Antlr.Data
 
         public Query ToQuery()
         {
-            return new Query(_assetType, _selection, _filter, _skip, _take, _metaModel);
+            return new Query(_assetType, _selection, _filter, _orderTerms, _skip, _take, _metaModel);
         }
     }
 
@@ -65,15 +76,17 @@ namespace V1Antlr.Data
         public readonly AssetType AssetType;
         public readonly IEnumerable<AttributeDefinition> Selection;
         public readonly FilterTerm Filter;
+        public readonly IEnumerable<OrderTerm> OrderTerms;
         public readonly int? Skip;
         public readonly int? Take;
         public readonly MetaModel MetaModel;
 
-        public Query(AssetType assetType, IEnumerable<AttributeDefinition> selection, FilterTerm filter, int? skip, int? take, MetaModel metaModel)
+        public Query(AssetType assetType, IEnumerable<AttributeDefinition> selection, FilterTerm filter, IEnumerable<OrderTerm> orderTerms,  int? skip, int? take, MetaModel metaModel)
         {
             AssetType = assetType;
             Selection = selection;
             Filter = filter;
+            OrderTerms = orderTerms;
             Skip = skip;
             Take = take;
             MetaModel = metaModel;

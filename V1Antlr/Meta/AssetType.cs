@@ -38,5 +38,10 @@ namespace V1Antlr.Meta
         {
             return AttributeDefinitionParser.ParseFilter(filterToken, this, _metaModel);
         }
+
+        public OrderTerm GetOrderTerm(string orderTermToken)
+        {
+            return AttributeDefinitionParser.ParseOrderTerm(orderTermToken, this, _metaModel);
+        }
     }
 }

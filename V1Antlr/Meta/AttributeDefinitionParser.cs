@@ -43,6 +43,17 @@ namespace V1Antlr.Meta
             var visitor = new FilterVisitor(assetType, metaModel);
             return visitor.Visit(expression);
         }
+
+        public static OrderTerm ParseOrderTerm(string filterToken, AssetType assetType, MetaModel metaModel)
+        {
+            ICharStream charStream = new AntlrInputStream(filterToken);
+            ITokenSource tokenSource = new V1QueryLexer(charStream);
+            ITokenStream tokenStream = new CommonTokenStream(tokenSource);
+            var parser = new V1QueryParser(tokenStream);
+            var expression = parser.sort_token_term();
+            var visitor = new OrderVisitor(assetType, metaModel);
+            return visitor.Visit(expression);
+        }
     }
 
     public class AttributeDefinitionVisitor : V1QueryBaseVisitor<AttributeDefinition>
@@ -235,6 +246,39 @@ namespace V1Antlr.Meta
                 default:
                     throw new NotSupportedException("Unknown binary operator");
             }
+        }
+    }
+
+    public class OrderVisitor : V1QueryBaseVisitor<OrderTerm>
+    {
+        private readonly AssetType _assetType;
+        private readonly MetaModel _metaModel;
+
+        public OrderVisitor(AssetType assetType, MetaModel metaModel)
+        {
+            _assetType = assetType;
+            _metaModel = metaModel;
+        }
+
+        public override OrderTerm VisitSort_token_term(V1QueryParser.Sort_token_termContext context)
+        {
+            var asc = context.asc_sort_token_term();
+            var desc = context.desc_sort_token_term();
+            return asc != null ? Visit(asc) : Visit(desc);
+        }
+
+        public override OrderTerm VisitAsc_sort_token_term(V1QueryParser.Asc_sort_token_termContext context)
+        {
+            var visitor = new AttributeDefinitionVisitor(_assetType, _metaModel);
+            var attributeDefinition = visitor.VisitAttribute_name(context.attribute_name());
+            return new OrderTerm(attributeDefinition, OrderTermDirection.Ascending);
+        }
+
+        public override OrderTerm VisitDesc_sort_token_term(V1QueryParser.Desc_sort_token_termContext context)
+        {
+            var visitor = new AttributeDefinitionVisitor(_assetType, _metaModel);
+            var attributeDefinition = visitor.VisitAttribute_name(context.attribute_name());
+            return new OrderTerm(attributeDefinition, OrderTermDirection.Descending);
         }
     }
 }

@@ -87,6 +87,7 @@
     <Compile Include="Meta\JoinedAttributeDefinition.cs" />
     <Compile Include="Meta\MetaModel.cs" />
     <Compile Include="Meta\MultiRelationAttributeDefinition.cs" />
+    <Compile Include="Meta\OrderTerm.cs" />
     <Compile Include="Meta\PrimitveAttributeDefinition.cs" />
     <Compile Include="Meta\SingleRelationAttributeDefinition.cs" />
     <Compile Include="Program.cs" />
