@@ -169,40 +169,12 @@ namespace V1Antlr.Data
         private static IQueryable ApplyFilter(IQueryable queryable, Query query)
         {
             var parameter = Expression.Parameter(queryable.ElementType);
-            var expression = CreateFilterExpression(query.Filter, parameter);
+            var expression = query.Filter.CreateExpression(parameter);
             if (expression == null)
                 return queryable;
             var lambda = Expression.Lambda(expression, parameter);
             var ordercall = Expression.Call(typeof(Queryable), "Where", new[] { queryable.ElementType }, queryable.Expression, lambda);
             return queryable.Provider.CreateQuery(ordercall);
-        }
-
-        private static BinaryExpression CreateFilterExpression(FilterTerm term, Expression parameter)
-        {
-            if (term.Type == FilterTermType.And)
-            {
-                BinaryExpression expression = null;
-                foreach (var innerTerm in term.Terms)
-                {
-                    var innerExpression = CreateFilterExpression(innerTerm, parameter);
-                    expression = expression == null ? innerExpression : Expression.AndAlso(expression, innerExpression);
-                }
-                return expression;
-            }
-
-            if (term.Type == FilterTermType.Or)
-            {
-                BinaryExpression expression = null;
-                foreach (var innerTerm in term.Terms)
-                {
-                    var innerExpression = CreateFilterExpression(innerTerm, parameter);
-                    expression = expression == null ? innerExpression : Expression.OrElse(expression, innerExpression);
-                }
-                return expression;
-            }
-
-            var fieldFilterTerm = (FieldFilterTerm) term;
-            return fieldFilterTerm.AttributeDefinition.CreateFilterExpression(fieldFilterTerm.Operator, fieldFilterTerm.Values, parameter);
         }
     }
 }

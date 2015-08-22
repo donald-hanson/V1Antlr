@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace V1Antlr.Meta
 {
@@ -14,6 +15,8 @@ namespace V1Antlr.Meta
     {
         public abstract FilterTermType Type { get; }
         public abstract IEnumerable<FilterTerm> Terms { get; }
+
+        internal abstract BinaryExpression CreateExpression(Expression parameter);
     }
 
     public abstract class GroupFilterTerm : FilterTerm
@@ -34,12 +37,34 @@ namespace V1Antlr.Meta
     public class AndFilterTerm : GroupFilterTerm
     {
         public override FilterTermType Type { get; } = FilterTermType.And;
+        internal override BinaryExpression CreateExpression(Expression parameter)
+        {
+            BinaryExpression expression = null;
+            foreach (var innerTerm in Terms)
+            {
+                var innerExpression = innerTerm.CreateExpression(parameter);
+                expression = expression == null ? innerExpression : Expression.AndAlso(expression, innerExpression);
+            }
+            return expression;
+        }
+
         protected override string Separator { get; } = ";";
     }
 
     public class OrFilterTerm : GroupFilterTerm
     {
         public override FilterTermType Type { get; } = FilterTermType.Or;
+        internal override BinaryExpression CreateExpression(Expression parameter)
+        {
+            BinaryExpression expression = null;
+            foreach (var innerTerm in Terms)
+            {
+                var innerExpression = innerTerm.CreateExpression(parameter);
+                expression = expression == null ? innerExpression : Expression.OrElse(expression, innerExpression);
+            }
+            return expression;
+        }
+
         protected override string Separator { get; } = "|";
     }
 
@@ -67,6 +92,10 @@ namespace V1Antlr.Meta
 
         public override FilterTermType Type { get; } = FilterTermType.Field;
         public override IEnumerable<FilterTerm> Terms => new[] {this};
+        internal override BinaryExpression CreateExpression(Expression parameter)
+        {
+            return AttributeDefinition.CreateFilterExpression(Operator, Values, parameter);
+        }
 
         public AttributeDefinition AttributeDefinition { get; }
         public FieldFilterTermOperator Operator { get; }
