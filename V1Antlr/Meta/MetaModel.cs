@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
-using log4net;
 using Magnum.Extensions;
 using V1Antlr.Extensions;
 
@@ -11,8 +10,6 @@ namespace V1Antlr.Meta
     {
         private readonly IDictionary<string, AssetType>  _assetTypes = new Dictionary<string, AssetType>();
         private readonly IDictionary<string, AttributeDefinition> _attributeDefinitions = new Dictionary<string, AttributeDefinition>();
-
-        private static readonly ILog Log = LogManager.GetLogger(typeof (MetaModel));
 
         public void RegisterTypes(params Type[] types)
         {
@@ -69,11 +66,7 @@ namespace V1Antlr.Meta
             if (propertyType == typeof (string))
                 return new PrimitveAttributeDefinition(type, property, assetType, true);
 
-            if (propertyType == typeof (bool))
-                return new PrimitveAttributeDefinition(type, property, assetType, false);
-            if (propertyType == typeof (DateTime))
-                return new PrimitveAttributeDefinition(type, property, assetType, false);
-            if (propertyType.IsNumeric())
+            if (propertyType.IsSupportedPrimitiveType())
                 return new PrimitveAttributeDefinition(type, property, assetType, false);
 
             if (propertyType.Implements(typeof(ICollection<>)))
@@ -89,29 +82,25 @@ namespace V1Antlr.Meta
 
                 throw new NotImplementedException($"Unsupported collection type: {propertyDebugName}");
             }
-            else if (propertyType.Implements(typeof(Nullable<>)))
+
+            if (propertyType.Implements(typeof(Nullable<>)))
             {
                 var innerType = propertyType.GetGenericArguments()[0];
-                if (innerType == typeof(bool))
-                    return new PrimitveAttributeDefinition(type, property, assetType, true);
-                if (innerType == typeof(DateTime))
-                    return new PrimitveAttributeDefinition(type, property, assetType, true);
-                if (innerType.IsNumeric())
+                if (innerType.IsSupportedPrimitiveType())
                     return new PrimitveAttributeDefinition(type, property, assetType, true);
 
                 throw new NotImplementedException($"Unsupported nullable type: {propertyDebugName}");
             }
-            else if (propertyType.IsClass)
+
+            if (propertyType.IsClass)
             {
                 AssetType relatedAssetType;
                 if (!_assetTypes.TryGetValue(propertyType.Name, out relatedAssetType))
                     throw new NotImplementedException($"Could not resolve related asset type: {propertyDebugName}");
                 return new SingleRelationAttributeDefinition(type, property, assetType, true, relatedAssetType);
             }
-            else
-            {
-                throw new NotImplementedException($"Unsupported property type: {propertyDebugName}");
-            }
+
+            throw new NotImplementedException($"Unsupported property type: {propertyDebugName}");
         }
     }
 }

@@ -1,13 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace V1Antlr.Extensions
 {
     public static class TypeExtensions
     {
+        public static bool IsSupportedPrimitiveType(this Type type)
+        {
+            return type.IsNumeric() || (type == typeof (bool) || type == typeof (DateTime));
+        }
+
         public static bool IsNumeric(this Type type)
         {
             if (type == typeof(byte))
