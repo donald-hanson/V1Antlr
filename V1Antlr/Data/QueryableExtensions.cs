@@ -24,36 +24,63 @@ namespace V1Antlr.Data
             }
         }
 
-        private static void AddProperty(this TypeBuilder typeBuilder, string propertyName, Type propertyType)
+        private static void AddProperty(this TypeBuilder typeBuilder, string name, Type type)
         {
-            const MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.HideBySig;
+            FieldBuilder field = typeBuilder.DefineField("_" + name, type, FieldAttributes.Private);
+            PropertyBuilder propertyBuilder = typeBuilder.DefineProperty(name, PropertyAttributes.None, type, null);
 
-            FieldBuilder field = typeBuilder.DefineField("_" + propertyName, typeof(string), FieldAttributes.Private);
-            PropertyBuilder property = typeBuilder.DefineProperty(propertyName, PropertyAttributes.None, propertyType, new[] { propertyType });
+            MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
 
-            MethodBuilder getMethodBuilder = typeBuilder.DefineMethod("get_value", getSetAttr, propertyType, Type.EmptyTypes);
-            ILGenerator getIl = getMethodBuilder.GetILGenerator();
-            getIl.Emit(OpCodes.Ldarg_0);
-            getIl.Emit(OpCodes.Ldfld, field);
-            getIl.Emit(OpCodes.Ret);
+            MethodBuilder getter = typeBuilder.DefineMethod("get_" + name, getSetAttr, type, Type.EmptyTypes);
 
-            MethodBuilder setMethodBuilder = typeBuilder.DefineMethod("set_value", getSetAttr, null, new[] { propertyType });
-            ILGenerator setIl = setMethodBuilder.GetILGenerator();
-            setIl.Emit(OpCodes.Ldarg_0);
-            setIl.Emit(OpCodes.Ldarg_1);
-            setIl.Emit(OpCodes.Stfld, field);
-            setIl.Emit(OpCodes.Ret);
+            ILGenerator getIL = getter.GetILGenerator();
+            getIL.Emit(OpCodes.Ldarg_0);
+            getIL.Emit(OpCodes.Ldfld, field);
+            getIL.Emit(OpCodes.Ret);
 
-            property.SetGetMethod(getMethodBuilder);
-            property.SetSetMethod(setMethodBuilder);
+            MethodBuilder setter = typeBuilder.DefineMethod("set_" + name, getSetAttr, null, new Type[] { type });
+
+            ILGenerator setIL = setter.GetILGenerator();
+            setIL.Emit(OpCodes.Ldarg_0);
+            setIL.Emit(OpCodes.Ldarg_1);
+            setIL.Emit(OpCodes.Stfld, field);
+            setIL.Emit(OpCodes.Ret);
+
+
+            propertyBuilder.SetGetMethod(getter);
+            propertyBuilder.SetSetMethod(setter);
         }
 
 
         public static QueryResult ApplyQuery(this IQueryable queryable, Query query)
         {
-            //var generatedType = typeof (ExpandoObject);
-            
+            queryable = ApplyPaging(queryable, query);
+            queryable = ApplySelection(queryable, query);
 
+            return new QueryResult(query, Enumerable.Empty<Asset>(), 0);
+        }
+
+        private static IQueryable ApplyPaging(IQueryable queryable, Query query)
+        {
+            if (query.Skip.HasValue)
+            {
+                var skip = Expression.Constant(query.Skip.Value);
+                var call = Expression.Call(typeof (Queryable), "Skip", new[] {queryable.ElementType}, queryable.Expression, skip);
+                queryable = queryable.Provider.CreateQuery(call);
+            }
+
+            if (query.Take.HasValue)
+            {
+                var take = Expression.Constant(query.Take.Value);
+                var call = Expression.Call(typeof(Queryable), "Take", new[] { queryable.ElementType }, queryable.Expression, take);
+                queryable = queryable.Provider.CreateQuery(call);
+            }
+
+            return queryable;
+        }
+
+        private static IQueryable ApplySelection(IQueryable queryable, Query query)
+        {
             var typeName = $"t{Guid.NewGuid().ToString("N")}";
             var typeBuilder = ModuleBuilder.DefineType(typeName);
 
@@ -91,7 +118,11 @@ namespace V1Antlr.Data
             var newContext = Expression.New(generatedType);
             var memberInit = Expression.MemberInit(newContext, bindings);
 
-            return new QueryResult(query, Enumerable.Empty<Asset>(), 0);
+            var select = Expression.Lambda(memberInit, parameter);
+
+            var call = Expression.Call(typeof (Queryable), "Select", new[] {queryable.ElementType, @select.ReturnType}, queryable.Expression, @select);
+
+            return queryable.Provider.CreateQuery(call);
         }
     }
 

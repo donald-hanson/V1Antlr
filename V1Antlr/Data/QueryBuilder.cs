@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using V1Antlr.Meta;
 
 namespace V1Antlr.Data
@@ -10,6 +11,8 @@ namespace V1Antlr.Data
 
         private readonly ICollection<AttributeDefinition> _selection = new List<AttributeDefinition>();
         private FilterTerm _filter = new AndFilterTerm();
+        private int? _skip;
+        private int? _take;
 
         private QueryBuilder(AssetType assetType, MetaModel metaModel)
         {
@@ -39,9 +42,21 @@ namespace V1Antlr.Data
             return this;
         }
 
+        public QueryBuilder Skip(int skip)
+        {
+            _skip = skip;
+            return this;
+        }
+
+        public QueryBuilder Take(int take)
+        {
+            _take = take;
+            return this;
+        }
+
         public Query ToQuery()
         {
-            return new Query(_assetType, _selection, _filter, _metaModel);
+            return new Query(_assetType, _selection, _filter, _skip, _take, _metaModel);
         }
     }
 
@@ -50,13 +65,17 @@ namespace V1Antlr.Data
         public readonly AssetType AssetType;
         public readonly IEnumerable<AttributeDefinition> Selection;
         public readonly FilterTerm Filter;
+        public readonly int? Skip;
+        public readonly int? Take;
         public readonly MetaModel MetaModel;
 
-        public Query(AssetType assetType, IEnumerable<AttributeDefinition> selection, FilterTerm filter, MetaModel metaModel)
+        public Query(AssetType assetType, IEnumerable<AttributeDefinition> selection, FilterTerm filter, int? skip, int? take, MetaModel metaModel)
         {
             AssetType = assetType;
             Selection = selection;
             Filter = filter;
+            Skip = skip;
+            Take = take;
             MetaModel = metaModel;
         }
     }

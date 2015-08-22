@@ -55,8 +55,10 @@ namespace V1Antlr
             }
 
             Query query = QueryBuilder.For("Product", metaModel)
-                .Select("ID","Title","BodyHtml")
+                .Select("ID","Title","BodyHtml","Variants")
                 .Where("ID>'0'")
+                .Skip(1)
+                .Take(1)
                 .ToQuery();
 
             var products = new Product[]
@@ -71,7 +73,7 @@ namespace V1Antlr
                 ID = p.ID,
                 Title = p.Title,
                 BodyHtml = p.BodyHtml,
-                test = p.Images.Where(i => i.ID > 0).Count()
+                //test = p.Images.Where(i => i.ID > 0).Count()
             });
                 
             var selected = products.AsQueryable().ApplyQuery(query);
