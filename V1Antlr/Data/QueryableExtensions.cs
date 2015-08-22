@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using V1Antlr.Meta;
 
 namespace V1Antlr.Data
 {
@@ -24,40 +24,54 @@ namespace V1Antlr.Data
             }
         }
 
-        private static void AddProperty(this TypeBuilder typeBuilder, string name, Type type)
-        {
-            FieldBuilder field = typeBuilder.DefineField("_" + name, type, FieldAttributes.Private);
-            PropertyBuilder propertyBuilder = typeBuilder.DefineProperty(name, PropertyAttributes.None, type, null);
-
-            MethodAttributes getSetAttr = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.SpecialName;
-
-            MethodBuilder getter = typeBuilder.DefineMethod("get_" + name, getSetAttr, type, Type.EmptyTypes);
-
-            ILGenerator getIL = getter.GetILGenerator();
-            getIL.Emit(OpCodes.Ldarg_0);
-            getIL.Emit(OpCodes.Ldfld, field);
-            getIL.Emit(OpCodes.Ret);
-
-            MethodBuilder setter = typeBuilder.DefineMethod("set_" + name, getSetAttr, null, new Type[] { type });
-
-            ILGenerator setIL = setter.GetILGenerator();
-            setIL.Emit(OpCodes.Ldarg_0);
-            setIL.Emit(OpCodes.Ldarg_1);
-            setIL.Emit(OpCodes.Stfld, field);
-            setIL.Emit(OpCodes.Ret);
-
-
-            propertyBuilder.SetGetMethod(getter);
-            propertyBuilder.SetSetMethod(setter);
-        }
-
-
         public static QueryResult ApplyQuery(this IQueryable queryable, Query query)
         {
+            // queryable = ApplyFilter(queryable, query);
+
+            var totalAvailable = DetermineTotalAvailable(queryable);
+
+            // queryable = ApplySorting(queryable, query);
             queryable = ApplyPaging(queryable, query);
             queryable = ApplySelection(queryable, query);
 
-            return new QueryResult(query, Enumerable.Empty<Asset>(), 0);
+            var assets = queryable.Execute(query);
+
+            return new QueryResult(query, assets, totalAvailable);
+        }
+
+        private static IEnumerable<Asset> Execute(this IQueryable queryable, Query query)
+        {
+            List<Asset> assets = new List<Asset>();
+
+            var selectionFieldMapping = GetSelectionMapping(query.Selection);
+
+            var fieldMap = queryable.ElementType.GetFields().ToDictionary(x => x.Name);
+
+            foreach (var obj in queryable)
+            {
+                Asset asset = new Asset(query.AssetType);
+
+                foreach (var kvp in selectionFieldMapping)
+                {
+                    var name = kvp.Key;
+                    var attributeDefinition = kvp.Value;
+
+                    var field = fieldMap[name];
+                    var value = field.GetValue(obj);
+
+                    asset.LoadAttribute(attributeDefinition, value);
+                }
+                
+                assets.Add(asset);
+            }
+
+            return assets;
+        }
+
+        private static long DetermineTotalAvailable(IQueryable queryable)
+        {
+            var call = Expression.Call(typeof(Queryable), "LongCount", new[] { queryable.ElementType }, queryable.Expression);
+            return queryable.Provider.Execute<long>(call);
         }
 
         private static IQueryable ApplyPaging(IQueryable queryable, Query query)
@@ -79,6 +93,11 @@ namespace V1Antlr.Data
             return queryable;
         }
 
+        private static IDictionary<string, AttributeDefinition> GetSelectionMapping(IEnumerable<AttributeDefinition> selection)
+        {
+            return selection.Select((a, i) => new {a, i}).ToDictionary(x => $"v{x.i}", x => x.a);
+        }
+
         private static IQueryable ApplySelection(IQueryable queryable, Query query)
         {
             var typeName = $"t{Guid.NewGuid().ToString("N")}";
@@ -86,19 +105,20 @@ namespace V1Antlr.Data
 
             var parameter = Expression.Parameter(queryable.ElementType);
 
+            var selectionFieldMapping = GetSelectionMapping(query.Selection);
+
             IDictionary<string, Expression> mapping = new Dictionary<string, Expression>();
 
-            int i = 0;
-            foreach (var attributeDefinition in query.Selection)
+            foreach (var kvp in selectionFieldMapping)
             {
-                var name = $"v{i}";
-                i++;
+                var name = kvp.Key;
+                var attributeDefinition = kvp.Value;
 
                 var expression = attributeDefinition.CreateExpression(parameter);
                 mapping.Add(name, expression);
 
-                var propertyType = expression.Type;
-                typeBuilder.AddProperty(name, propertyType);
+                var fieldType = expression.Type;
+                typeBuilder.DefineField(name, fieldType, FieldAttributes.Public);
             }
 
             var generatedType = typeBuilder.CreateType();
@@ -110,8 +130,8 @@ namespace V1Antlr.Data
                 var propertyName = kvp.Key;
                 var rightExpression = kvp.Value;
 
-                var targetProperty = generatedType.GetProperty(propertyName);
-                var binding = Expression.Bind(targetProperty, rightExpression);
+                var targetField = generatedType.GetField(propertyName);
+                var binding = Expression.Bind(targetField, rightExpression);
                 bindings.Add(binding);
             }
 
@@ -124,24 +144,5 @@ namespace V1Antlr.Data
 
             return queryable.Provider.CreateQuery(call);
         }
-    }
-
-    public class QueryResult
-    {
-        public readonly Query Query;
-        public readonly IEnumerable<Asset> Assets;
-        public readonly ulong TotalAvailable;
-
-        public QueryResult(Query query, IEnumerable<Asset> assets, ulong totalAvailable)
-        {
-            Query = query;
-            Assets = assets;
-            TotalAvailable = totalAvailable;
-        }
-    }
-
-    public class Asset
-    {
-        
     }
 }

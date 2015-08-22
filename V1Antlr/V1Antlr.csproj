@@ -73,8 +73,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Data\Asset.cs" />
     <Compile Include="Data\QueryableExtensions.cs" />
     <Compile Include="Data\QueryBuilder.cs" />
+    <Compile Include="Data\QueryResult.cs" />
     <Compile Include="Extensions\TypeExtensions.cs" />
     <Compile Include="Meta\AggregateCountAttributeDefinition.cs" />
     <Compile Include="Meta\AssetType.cs" />
