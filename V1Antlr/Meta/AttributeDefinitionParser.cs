@@ -191,19 +191,13 @@ namespace V1Antlr.Meta
             var attributeVisitor = new AttributeDefinitionVisitor(_rootAssetType, _metaModel);
             var attributeDefinition = attributeVisitor.Visit(attributeName);
 
-            var unaryOperator = context.unary_operator();
-            if (unaryOperator != null)
+            var binaryOperator = context.binary_operator();
+            if (binaryOperator == null)
             {
-                if (unaryOperator.PLUS() != null)
-                {
-                    // exists
-                    return FieldFilterTerm.Exists(attributeDefinition);
-                }
-                else
-                {
-                    // not exists
+                var unaryOperator = context.unary_operator();
+                if (unaryOperator?.MINUS() != null)
                     return FieldFilterTerm.NotExists(attributeDefinition);
-                }
+                return FieldFilterTerm.Exists(attributeDefinition);
             }
 
             List<object> values = new List<object>();
@@ -227,7 +221,7 @@ namespace V1Antlr.Meta
                 throw new NotImplementedException("Filter Variables");
             }
 
-            var binaryOperator = context.binary_operator();
+            
             var binaryOperatorText = binaryOperator.GetText();
             switch (binaryOperatorText)
             {

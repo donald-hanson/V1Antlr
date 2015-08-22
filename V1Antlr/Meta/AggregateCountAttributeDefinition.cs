@@ -1,42 +1,73 @@
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+
 namespace V1Antlr.Meta
 {
-    public class AggregateCountAttributeDefinition : AttributeDefinition
+    public abstract class BaseAggregateAttributeDefinition : AttributeDefinition
     {
-        public AggregateCountAttributeDefinition(AttributeDefinition left)
-            :base(left.AssetType, left.Name + ".@Count", false, null, false)
-        {           
+        private readonly AttributeDefinition _left;
+
+        protected BaseAggregateAttributeDefinition(AttributeDefinition left, string suffix)
+            :base(left.AssetType, left.Name + "." + suffix, false, null, false)
+        {
+            _left = left;
         }
 
         internal override bool IsNumeric => true;
-    }
 
-    public class AggregateSumAttributeDefinition : AttributeDefinition
-    {
-        public AggregateSumAttributeDefinition(AttributeDefinition left)
-            : base(left.AssetType, left.Name + ".@Sum", false, null, false)
-        {    
+        internal override Expression CreateExpression(Expression parameter)
+        {
+            var leftExpression = _left.CreateExpression(parameter);
+
+            var innerType = leftExpression.Type.GetGenericArguments()[0];
+
+            var enumerableCall = Expression.Call(typeof(Enumerable), AggregateMethodName, new[] { innerType }, leftExpression);
+
+            return enumerableCall;
         }
 
-        internal override bool IsNumeric => true;
+        internal override object Coerce(string value)
+        {
+            return Convert.ToInt32(value);
+        }
+
+        protected abstract string AggregateMethodName { get; }
     }
 
-    public class AggregateMaxAttributeDefinition : AttributeDefinition
+    public class AggregateCountAttributeDefinition : BaseAggregateAttributeDefinition
     {
-        public AggregateMaxAttributeDefinition(AttributeDefinition left)
-            : base(left.AssetType, left.Name + ".@Max", false, null, false)
+        public AggregateCountAttributeDefinition(AttributeDefinition left) :base(left, "@Count")
         {
         }
 
-        internal override bool IsNumeric => true;
+        protected override string AggregateMethodName { get; } = "Count";
     }
 
-    public class AggregateMinAttributeDefinition : AttributeDefinition
+    public class AggregateSumAttributeDefinition : BaseAggregateAttributeDefinition
     {
-        public AggregateMinAttributeDefinition(AttributeDefinition left)
-            : base(left.AssetType, left.Name + ".@Min", false, null, false)
+        public AggregateSumAttributeDefinition(AttributeDefinition left) :base(left, "@Sum")
         {
         }
 
-        internal override bool IsNumeric => true;
+        protected override string AggregateMethodName { get; } = "Sum";
+    }
+
+    public class AggregateMaxAttributeDefinition : BaseAggregateAttributeDefinition
+    {
+        public AggregateMaxAttributeDefinition(AttributeDefinition left) :base(left, "@Max")
+        {
+        }
+
+        protected override string AggregateMethodName { get; } = "Max";
+    }
+
+    public class AggregateMinAttributeDefinition : BaseAggregateAttributeDefinition
+    {
+        public AggregateMinAttributeDefinition(AttributeDefinition left) :base(left, "@Min")
+        {
+        }
+
+        protected override string AggregateMethodName { get; } = "Min";
     }
 }

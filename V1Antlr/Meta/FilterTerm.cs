@@ -16,7 +16,7 @@ namespace V1Antlr.Meta
         public abstract FilterTermType Type { get; }
         public abstract IEnumerable<FilterTerm> Terms { get; }
 
-        internal abstract BinaryExpression CreateExpression(Expression parameter);
+        internal abstract Expression CreateExpression(Expression parameter);
     }
 
     public abstract class GroupFilterTerm : FilterTerm
@@ -37,9 +37,9 @@ namespace V1Antlr.Meta
     public class AndFilterTerm : GroupFilterTerm
     {
         public override FilterTermType Type { get; } = FilterTermType.And;
-        internal override BinaryExpression CreateExpression(Expression parameter)
+        internal override Expression CreateExpression(Expression parameter)
         {
-            BinaryExpression expression = null;
+            Expression expression = null;
             foreach (var innerTerm in Terms)
             {
                 var innerExpression = innerTerm.CreateExpression(parameter);
@@ -54,9 +54,9 @@ namespace V1Antlr.Meta
     public class OrFilterTerm : GroupFilterTerm
     {
         public override FilterTermType Type { get; } = FilterTermType.Or;
-        internal override BinaryExpression CreateExpression(Expression parameter)
+        internal override Expression CreateExpression(Expression parameter)
         {
-            BinaryExpression expression = null;
+            Expression expression = null;
             foreach (var innerTerm in Terms)
             {
                 var innerExpression = innerTerm.CreateExpression(parameter);
@@ -92,7 +92,7 @@ namespace V1Antlr.Meta
 
         public override FilterTermType Type { get; } = FilterTermType.Field;
         public override IEnumerable<FilterTerm> Terms => new[] {this};
-        internal override BinaryExpression CreateExpression(Expression parameter)
+        internal override Expression CreateExpression(Expression parameter)
         {
             return AttributeDefinition.CreateFilterExpression(Operator, Values, parameter);
         }

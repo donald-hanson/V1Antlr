@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -51,6 +52,17 @@ namespace V1Antlr.Meta
         internal override Expression CreateExpression(Expression parameter)
         {
             return Expression.Property(parameter, _property);
+        }
+
+        internal override Expression CreateExistsFilterExpression(Expression parameter)
+        {
+            var leftExpression = CreateExpression(parameter);
+
+            var innerType = leftExpression.Type.GetGenericArguments()[0];
+
+            var enumerableCall = Expression.Call(typeof(Enumerable), "Any", new[] { innerType }, leftExpression);
+
+            return enumerableCall;
         }
     }
 }

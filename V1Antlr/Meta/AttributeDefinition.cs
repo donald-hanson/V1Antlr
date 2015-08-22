@@ -65,12 +65,57 @@ namespace V1Antlr.Meta
 
         internal virtual Expression CreateExpression(Expression parameter)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException($"{GetType().Name}.CreateExpression for {Token}");
         }
 
-        internal virtual BinaryExpression CreateFilterExpression(FieldFilterTermOperator @operator, IEnumerable<object> values, Expression parameter)
+        internal virtual Expression CreateExistsFilterExpression(Expression parameter)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException($"{GetType().Name}.CreateExistsFilterExpression for {Token}");
+        }
+
+        internal virtual Expression CreateFilterExpression(FieldFilterTermOperator @operator, IEnumerable<object> values, Expression parameter)
+        {
+            if (@operator == FieldFilterTermOperator.Exists)
+                return CreateExistsFilterExpression(parameter);
+
+            if (@operator == FieldFilterTermOperator.NotExists)
+            {
+                var existsExpression = CreateExistsFilterExpression(parameter);
+                return Expression.Not(existsExpression);
+            }
+
+            var method = GetOperatorMethod(@operator);
+
+            BinaryExpression result = null;
+            foreach (var value in values)
+            {
+                var left = CreateExpression(parameter);
+                var right = Expression.Constant(value);
+                var inner = method(left, right);
+                result = result == null ? inner : Expression.OrElse(result, inner);
+            }
+            return result;
+        }
+
+        private Func<Expression, Expression, BinaryExpression> GetOperatorMethod(FieldFilterTermOperator @operator)
+        {
+            switch (@operator)
+            {
+                case FieldFilterTermOperator.Equal:
+                    return Expression.Equal;
+                case FieldFilterTermOperator.NotEqual:
+                    return Expression.NotEqual;
+                case FieldFilterTermOperator.Greater:
+                    return Expression.GreaterThan;
+                case FieldFilterTermOperator.GreaterOrEqual:
+                    return Expression.GreaterThanOrEqual;
+                case FieldFilterTermOperator.Less:
+                    return Expression.LessThan;
+                case FieldFilterTermOperator.LessOrEqual:
+                    return Expression.LessThanOrEqual;
+            }
+
+            throw new NotSupportedException($"Unsupported operator {@operator}");
         }
     }
 }
