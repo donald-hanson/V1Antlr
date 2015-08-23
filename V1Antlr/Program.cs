@@ -56,11 +56,12 @@ namespace V1Antlr
             }
 
             Query query = QueryBuilder.For("Product", metaModel)
-                .Select("ID", "Title", "BodyHtml", "Variants.@Count", "Variants")
-                .Where("Variants;ID>'0'")
-                .Order("Title", "-BodyHtml", "+ID")
-                .Skip(1)
-                .Take(10)
+                .Select("Variants.Title", "Variants.Images", "Variants.Images.@Count", "Variants.Product.ID")
+                //.Where("ID='3'")
+                //.Where("Variants;ID>'0'")
+                //.Order("Title", "-BodyHtml", "+ID")
+                //.Skip(1)
+                //.Take(10)
                 .ToQuery();
 
             var products = new Product[]
@@ -89,7 +90,28 @@ namespace V1Antlr
                                                       ID = 30,
                                                       Price = 30.30m,
                                                       Quantity = 30,
-                                                      Title = "Variant 30"
+                                                      Title = "Variant 30",
+                                                      Images = new List<ProductImage>
+                                                               {
+                                                                   new ProductImage
+                                                                   {
+                                                                       ID = 300,
+                                                                       Position = 1,
+                                                                       Source = "http://google.com"
+                                                                   },
+                                                                   new ProductImage
+                                                                   {
+                                                                       ID = 301,
+                                                                       Position = 2,
+                                                                       Source = "http://microsoft.com"
+                                                                   },
+                                                                   new ProductImage
+                                                                   {
+                                                                       ID = 302,
+                                                                       Position = 3,
+                                                                       Source = "http://amazon.com"
+                                                                   }
+                                                               }
                                                   },
                                                   new ProductVariant
                                                   {
@@ -155,6 +177,11 @@ namespace V1Antlr
             foreach (var asset in selected.Assets)
             {
                 Console.WriteLine("==========");
+                var titlesDef = metaModel.GetAttributeDefinition("Product.Variants.Title");
+                var imagesDef = metaModel.GetAttributeDefinition("Product.Variants.Images");
+                var titles = asset.GetAttributeValue<IEnumerable<string>>(titlesDef).ToList();
+                var images = asset.GetAttributeValue<IEnumerable<object>>(imagesDef).ToList();
+
                 foreach (var attributeDefinition in query.Selection)
                 {
                     var value = asset.GetAttributeValue<object>(attributeDefinition);
@@ -162,6 +189,40 @@ namespace V1Antlr
                 }
             }
 
+            var singleRelationJoinQuery = QueryBuilder.For("ProductImage", metaModel).Select("Product.Title").ToQuery();
+
+            var testImages = new List<ProductImage>
+                             {
+                                 new ProductImage
+                                 {
+                                     ID = 1,
+                                     Product = new Product
+                                               {
+                                                   ID = 11,
+                                                   Title = "Product #11"
+                                               }
+                                 },
+                                 new ProductImage
+                                 {
+                                     ID = 2,
+                                     Product = new Product
+                                               {
+                                                   ID = 22,
+                                                   Title = "Product #22"
+                                               }
+                                 },
+                                 new ProductImage
+                                 {
+                                     ID = 3,
+                                     Product = new Product
+                                               {
+                                                   ID = 33,
+                                                   Title = "Product #33"
+                                               }
+                                 },
+                             };
+
+            var singleRelationJoinResults = testImages.AsQueryable().ApplyQuery(singleRelationJoinQuery);
 
             Console.WriteLine("Done");
             Console.ReadLine();

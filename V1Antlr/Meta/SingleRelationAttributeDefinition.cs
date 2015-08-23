@@ -1,4 +1,5 @@
 using System;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace V1Antlr.Meta
@@ -20,6 +21,11 @@ namespace V1Antlr.Meta
         internal override AttributeDefinition CreateJoinAttributeDefinition(AttributeDefinition relatedAttributeDefinition)
         {
             return new JoinedAttributeDefinition(this, relatedAttributeDefinition);
+        }
+
+        internal override Expression CreateExpression(Expression parameter)
+        {
+            return Expression.Property(parameter, _property);
         }
     }
 }
